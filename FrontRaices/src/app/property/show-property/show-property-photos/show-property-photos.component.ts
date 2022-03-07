@@ -46,23 +46,12 @@ export class ShowPropertyPhotosComponent implements OnInit {
   
 
   hidePicture(event:any){
-    if(confirm('Do you want to DELETE this picture?')){
-      
-      //var IdProp = event.target.attributes.value;
-      console.log(event.target.attributes.value);
-      console.log(event.target.attributes.value);
-
-      var IdProp = event.target.attributes.value;
-      console.log(IdProp);
-
+    if(confirm('Do you want to DELETE this picture?')){      
       this.PropertyImage.IdPropertyImage = event.target.attributes.value["value"];
-      
       this.service.hidePicture(this.PropertyImage).subscribe(data=>{
         alert(data.toString());
         this.refreshPropertyImagesList();
-      })
-      console.log(this.PropertyImage);
-
+      });
     }
   }
 

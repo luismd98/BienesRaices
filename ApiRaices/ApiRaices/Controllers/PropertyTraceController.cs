@@ -90,7 +90,9 @@ namespace ApiRaices.Controllers
 
                     //Second update query
                     stringQuery.Append("UPDATE dbo.Property SET ");
-                    stringQuery.Append("IdOwner = @IdOwner ");
+                    stringQuery.Append("IdOwner = @IdOwner, ");
+                    stringQuery.Append("Name = @Name, ");
+                    stringQuery.Append("Price = @Value ");
                     stringQuery.Append("WHERE IdProperty = @IdProperty;");
 
                     stringQuery.Append("COMMIT TRANSACTION;");
@@ -109,7 +111,6 @@ namespace ApiRaices.Controllers
                             sqlCommand.Parameters.AddWithValue("@IdProperty", propertyTrace.IdProperty);
 
                             sqlCommand.Parameters.AddWithValue("@IdOwner", propertyTrace.IdOwner);
-                            sqlCommand.Parameters.AddWithValue("@IdProperty", propertyTrace.IdProperty);
 
 
                             queryResult = sqlCommand.ExecuteNonQuery();
@@ -119,7 +120,7 @@ namespace ApiRaices.Controllers
                     }
                     if (queryResult > 0)
                     {
-                        return new JsonResult("Owner updated successfully.");
+                        return new JsonResult("Transaction has been successful.");
                     }
 
                 }

@@ -81,6 +81,7 @@ namespace ApiRaices.Controllers
             }
             else
             {
+                string tmp = "";
                 try
                 {
                     StringBuilder stringQuery = new StringBuilder("BEGIN TRANSACTION; ");
@@ -88,11 +89,11 @@ namespace ApiRaices.Controllers
                     stringQuery.Append("(Name, Address, Price, ");
                     stringQuery.Append("CodeInternal, Year, IdOwner) ");
                     stringQuery.Append("VALUES ");
-                    stringQuery.Append("@Name, @Address, @Price, ");
-                    stringQuery.Append("@CodeInternal, @Year, @IdOwner; ");
+                    stringQuery.Append("(@Name, @Address, @Price, ");
+                    stringQuery.Append("@CodeInternal, @Year, @IdOwner); ");
                     stringQuery.Append("COMMIT TRANSACTION;");
 
-
+                    tmp = stringQuery.ToString();
                     string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
                     int queryResult;
                     using (SqlConnection sqlConnection = new SqlConnection(sqlDataSource))
@@ -120,7 +121,7 @@ namespace ApiRaices.Controllers
                 }
                 catch (Exception ex)
                 {
-                    return new JsonResult("Database error: " + ex.Message);
+                    return new JsonResult("Database error: " + ex.Message + tmp);
                 }
             }
 
@@ -174,7 +175,6 @@ namespace ApiRaices.Controllers
                             sqlCommand.Parameters.AddWithValue("@CodeInternal", property.CodeInternal);
                             sqlCommand.Parameters.AddWithValue("@Year", property.Year);
                             sqlCommand.Parameters.AddWithValue("@IdOwner", property.IdOwner);
-                            sqlCommand.Parameters.AddWithValue("@Name", property.Name);
                             sqlCommand.Parameters.AddWithValue("@IdProperty", property.IdProperty);
 
                             queryResult = sqlCommand.ExecuteNonQuery();

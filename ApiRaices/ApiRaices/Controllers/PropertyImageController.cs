@@ -64,26 +64,14 @@ namespace ApiRaices.Controllers
         [HttpPut]
         public JsonResult HideImage(PropertyImage propertyImage)
         {
-            PropertyImageValidator validator = new PropertyImageValidator();
-            ValidationResult validationResults = validator.Validate(propertyImage);
-
-            if (!validationResults.IsValid)
-            {
-                string errorResult = string.Empty;
-                foreach (var failure in validationResults.Errors)
-                {
-                    errorResult += "Invalid data: " + failure.ErrorMessage;
-                }
-                return new JsonResult(errorResult);
-            }
-            else
+            if (propertyImage.IdPropertyImage > 0)
             {
                 try
                 {
                     StringBuilder stringQuery = new StringBuilder("BEGIN TRANSACTION; ");
-                    stringQuery.Append("UUPDATE dbo.PropertyImage SET ");
+                    stringQuery.Append("UPDATE dbo.PropertyImage SET ");
                     stringQuery.Append("Enabled = 0 ");
-                    stringQuery.Append("WHERE IdPropertyImage = @IdPropertyImage");
+                    stringQuery.Append("WHERE IdPropertyImage = @IdPropertyImage; ");
                     stringQuery.Append("COMMIT TRANSACTION;");
 
                     string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
@@ -109,6 +97,10 @@ namespace ApiRaices.Controllers
                 {
                     return new JsonResult("Database error: " + ex.Message);
                 }
+            }
+            else
+            {
+                return new JsonResult("Invalid data: IdPropertyImage must not be null, empty or <= 0.");
             }
             return new JsonResult("Error. No changes were made.");
         }

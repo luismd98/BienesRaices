@@ -8,11 +8,8 @@ namespace ApiRaices.Models.Validations
     {
         public PropertyTraceValidator()
         {
-            RuleFor(propertyTrace => propertyTrace.IdPropertyTrace)
-                .NotNull()
-                .NotEmpty()
-                .GreaterThan(0)
-                .Must(BeNumber);
+
+            //IdPropertyTrace: Identity value
 
             //missing DateSale, generated on runtime
 
