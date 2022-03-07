@@ -119,28 +119,34 @@ namespace ApiRaices.Controllers
                         stringQuery.Append("(@IdProperty, @Photo, @Enabled) ");
                         stringQuery.Append("COMMIT TRANSACTION;");
 
-
-                        string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
-                        int queryResult;
-
-                        using (SqlConnection sqlConnection = new SqlConnection(sqlDataSource))
+                        try
                         {
-                            sqlConnection.Open();
-                            using (SqlCommand sqlCommand = new SqlCommand(stringQuery.ToString(), sqlConnection))
+                            string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
+                            int queryResult;
+
+                            using (SqlConnection sqlConnection = new SqlConnection(sqlDataSource))
                             {
-                                sqlCommand.Parameters.AddWithValue("@IdProperty", propertyImage.IdProperty);
-                                sqlCommand.Parameters.AddWithValue("@Photo", propertyImage.Photo);
-                                sqlCommand.Parameters.AddWithValue("@Enabled", propertyImage.Enabled);
+                                sqlConnection.Open();
+                                using (SqlCommand sqlCommand = new SqlCommand(stringQuery.ToString(), sqlConnection))
+                                {
+                                    sqlCommand.Parameters.AddWithValue("@IdProperty", propertyImage.IdProperty);
+                                    sqlCommand.Parameters.AddWithValue("@Photo", propertyImage.Photo);
+                                    sqlCommand.Parameters.AddWithValue("@Enabled", propertyImage.Enabled);
 
-                                queryResult = sqlCommand.ExecuteNonQuery();
+                                    queryResult = sqlCommand.ExecuteNonQuery();
 
-                                sqlConnection.Close();
+                                    sqlConnection.Close();
+                                }
+                            }
+                            if (queryResult <= 0)
+                            {
+                                return new JsonResult("Picture could not be uploaded.");
                             }
                         }
-                        if (queryResult <= 0)
+                        catch (SqlException ex)
                         {
-                            return new JsonResult("Picture could not be uploaded.");
-                        }
+                            return new JsonResult("Database error.\r\n" + ex.Message);
+                        }                        
 
                         var physicalPath = _env.ContentRootPath + "/Photos/property/" + fileName;
 
@@ -150,7 +156,6 @@ namespace ApiRaices.Controllers
                         }
 
                         return new JsonResult("Picture uploaded.");
-
                     }
                 }
             }

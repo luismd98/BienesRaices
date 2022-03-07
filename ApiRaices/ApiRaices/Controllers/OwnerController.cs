@@ -34,33 +34,33 @@ namespace ApiRaices.Controllers
         [HttpGet]
         public JsonResult Get()
         {
-            DataTable table = new DataTable();
+            DataTable resultDataTable = new DataTable();
             string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
 
-            StringBuilder query = new StringBuilder("SELECT "+_newLine);
-            query.Append("IdOwner, Name, Address, Photo, "+ _newLine);
-            query.Append("convert(varchar(10),Birthday,120) as Birthday " + _newLine);
-            query.Append("FROM dbo.Owner");
+            StringBuilder queryString = new StringBuilder("SELECT "+_newLine);
+            queryString.Append("IdOwner, Name, Address, Photo, "+ _newLine);
+            queryString.Append("convert(varchar(10),Birthday,120) as Birthday " + _newLine);
+            queryString.Append("FROM dbo.Owner");
 
             try
             {
-                using (SqlConnection myConn = new SqlConnection(sqlDataSource))
-                using (SqlCommand cmd = new SqlCommand(query.ToString(), myConn))
+                using (SqlConnection sqlConnection = new SqlConnection(sqlDataSource))
+                using (SqlCommand cmd = new SqlCommand(queryString.ToString(), sqlConnection))
                 {
-                    myConn.Open();
+                    sqlConnection.Open();
 
-                    SqlDataReader myReader = cmd.ExecuteReader();
-                    table.Load(myReader);
+                    SqlDataReader sqlDataReader = cmd.ExecuteReader();
+                    resultDataTable.Load(sqlDataReader);
 
-                    myReader.Close();
-                    myConn.Close();
+                    sqlDataReader.Close();
+                    sqlConnection.Close();
                 }
             }
             catch (SqlException ex)
             {
                 return new JsonResult("Database error: "+ex.Message);
             }
-            return new JsonResult(table);
+            return new JsonResult(resultDataTable);
         }
 
 

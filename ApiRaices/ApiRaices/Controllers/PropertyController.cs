@@ -7,6 +7,11 @@ using System.Data.SqlClient;
 using System.Data;
 using System.Net;
 using System.Xml.Linq;
+using System.Text;
+using ApiRaices.Models.Validations;
+using FluentValidation.Results;
+using System;
+using FluentValidation;
 
 namespace ApiRaices.Controllers
 {
@@ -15,107 +20,181 @@ namespace ApiRaices.Controllers
     public class PropertyController : ControllerBase
     {
         private readonly IConfiguration _configuration;
-        private readonly IWebHostEnvironment _env;
 
-        public PropertyController(IConfiguration configuration, IWebHostEnvironment env)
+        public PropertyController(IConfiguration configuration)
         {
             _configuration = configuration;
-            _env = env;
         }
 
         [HttpGet]
         public JsonResult Get()
         {
-            string query = @"SELECT  
-                p.IdProperty, p.Name, p.Address, p.Price, 
-                p.CodeInternal, p.Year, p.IdOwner, o.Name as OwnerName
-                FROM dbo.Property p
-                INNER JOIN dbo.Owner o 
-                ON o.IdOwner = p.IdOwner;";
-            DataTable table = new DataTable();
+            DataTable resultDataTable = new DataTable();
             string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
-            SqlDataReader myReader;
-            using (SqlConnection myConn = new SqlConnection(sqlDataSource))
-            {
-                myConn.Open();
-                using (SqlCommand sqlCommand = new SqlCommand(query, myConn))
-                {
-                    myReader = sqlCommand.ExecuteReader();
-                    table.Load(myReader);
 
-                    myReader.Close();
-                    myConn.Close();
+            StringBuilder sqlQuery = new StringBuilder("SELECT ");
+            sqlQuery.Append("p.IdProperty, p.Name, p.Address, p.Price, ");
+            sqlQuery.Append("p.CodeInternal, p.Year, p.IdOwner, o.Name as OwnerName ");
+            sqlQuery.Append("FROM dbo.Property p ");
+            sqlQuery.Append("INNER JOIN dbo.Owner o  ");
+            sqlQuery.Append("ON o.IdOwner = p.IdOwner; ");
+
+            try
+            {
+                using (SqlConnection sqlConnection = new SqlConnection(sqlDataSource))
+                using (SqlCommand sqlCommand = new SqlCommand(sqlQuery.ToString(), sqlConnection))
+                {
+                    sqlConnection.Open();
+
+                    SqlDataReader sqlDataReader = sqlCommand.ExecuteReader();
+                    resultDataTable.Load(sqlDataReader);
+
+                    sqlDataReader.Close();
+                    sqlConnection.Close();
                 }
             }
-            return new JsonResult(table);
+            catch (SqlException sqlException)
+            {
+                return new JsonResult("Database error: " + sqlException.Message);
+            }
+            return new JsonResult(resultDataTable);
         }
 
 
         [HttpPost]
         public JsonResult Post(Property property)
         {
-            //IdProperty, Name, Address, Price, CodeInternal, Year, IdOwner
-            string query = @"INSERT INTO dbo.Property 
-                (Name, Address, Price, CodeInternal, Year, IdOwner)
-                values 
-                    (
-                    '" + property.Name + @"'
-                    ,'" + property.Address + @"'
-                    ,'" + property.Price + @"'
-                    ,'" + property.CodeInternal + @"'
-                    ,'" + property.Year + @"'
-                    ,'" + property.IdOwner + @"'
-                    )";
+            //Value to avoid error in the validator, not used on the query
+            property.IdProperty = 1;
 
-            DataTable table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
-            SqlDataReader myReader;
-            using (SqlConnection myConn = new SqlConnection(sqlDataSource))
+            PropertyValidatior validator = new PropertyValidatior();
+            ValidationResult validationResults = validator.Validate(property);
+
+            if (!validationResults.IsValid)
             {
-                myConn.Open();
-                using (SqlCommand sqlCommand = new SqlCommand(query, myConn))
+                string errorResult = string.Empty;
+                foreach (var failure in validationResults.Errors)
                 {
-                    myReader = sqlCommand.ExecuteReader();
-                    table.Load(myReader);
+                    errorResult += "Invalid data: " + failure.ErrorMessage + " \r\n";
+                }
+                return new JsonResult(errorResult);
+            }
+            else
+            {
+                try
+                {
+                    StringBuilder stringQuery = new StringBuilder("BEGIN TRANSACTION; ");
+                    stringQuery.Append("INSERT INTO dbo.Property ");
+                    stringQuery.Append("(Name, Address, Price, ");
+                    stringQuery.Append("CodeInternal, Year, IdOwner) ");
+                    stringQuery.Append("VALUES ");
+                    stringQuery.Append("@Name, @Address, @Price, ");
+                    stringQuery.Append("@CodeInternal, @Year, @IdOwner; ");
+                    stringQuery.Append("COMMIT TRANSACTION;");
 
-                    myReader.Close();
-                    myConn.Close();
+
+                    string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
+                    int queryResult;
+                    using (SqlConnection sqlConnection = new SqlConnection(sqlDataSource))
+                    {
+                        sqlConnection.Open();
+                        using (SqlCommand sqlCommand = new SqlCommand(stringQuery.ToString(), sqlConnection))
+                        {
+                            sqlCommand.Parameters.AddWithValue("@Name", property.Name);
+                            sqlCommand.Parameters.AddWithValue("@Address", property.Address);
+                            sqlCommand.Parameters.AddWithValue("@Price", property.Price);
+                            sqlCommand.Parameters.AddWithValue("@CodeInternal", property.CodeInternal);
+                            sqlCommand.Parameters.AddWithValue("@Year", property.Year);
+                            sqlCommand.Parameters.AddWithValue("@IdOwner", property.IdOwner);
+
+                            queryResult = sqlCommand.ExecuteNonQuery();
+
+                            sqlConnection.Close();
+                        }
+                    }
+                    if (queryResult > 0)
+                    {
+                        return new JsonResult("Property registered successfully.");
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    return new JsonResult("Database error: " + ex.Message);
                 }
             }
-            return new JsonResult("Added successfully");
+
+            return new JsonResult("Error. No changes were made.");
         }
+
 
         [HttpPut]
         public JsonResult Put(Property property)
         {
-            //(Name, Address, Price, CodeInternal, Year, IdOwner)
 
-            string query = @"UPDATE dbo.Property SET 
-                Name = '" + property.Name + @"'
-                ,Address = '" + property.Address + @"'
-                ,Price = '" + property.Price + @"'
-                ,CodeInternal = '" + property.CodeInternal + @"'
-                ,Year = '" + property.Year + @"'
-                ,IdOwner = '" + property.IdOwner + @"'
-                where IdProperty = " + property.IdProperty + @"";
+            PropertyValidatior validator = new();
+            ValidationResult validationResults = validator.Validate(property);
 
-
-            DataTable table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
-            SqlDataReader myReader;
-            using (SqlConnection myConn = new SqlConnection(sqlDataSource))
+            if (!validationResults.IsValid)
             {
-                myConn.Open();
-                using (SqlCommand sqlCommand = new SqlCommand(query, myConn))
+                string errorResult = string.Empty;
+                foreach (var failure in validationResults.Errors)
                 {
-                    myReader = sqlCommand.ExecuteReader();
-                    table.Load(myReader);
-
-                    myReader.Close();
-                    myConn.Close();
+                    errorResult += "Invalid data: " + failure.ErrorMessage + "\r\n";
                 }
+                return new JsonResult(errorResult);
             }
-            return new JsonResult("Updated successfully");
+            else
+            {
+                try
+                {
+                    StringBuilder stringQuery = new StringBuilder("BEGIN TRANSACTION; ");
+                    stringQuery.Append("UPDATE dbo.Property SET ");
+                    stringQuery.Append("Name = @Name, ");
+                    stringQuery.Append("Address = @Address, ");
+                    stringQuery.Append("Price = @Price, ");
+                    stringQuery.Append("CodeInternal = @CodeInternal, ");
+                    stringQuery.Append("Year = @Year, ");
+                    stringQuery.Append("IdOwner = @IdOwner ");
+                    stringQuery.Append("WHERE IdProperty = @IdProperty; ");
+                    stringQuery.Append("COMMIT TRANSACTION;");
+
+
+                    int queryResult;
+                    string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
+
+                    using (SqlConnection sqlConnection = new SqlConnection(sqlDataSource))
+                    {
+                        sqlConnection.Open();
+                        using (SqlCommand sqlCommand = new SqlCommand(stringQuery.ToString(), sqlConnection))
+                        {
+                            sqlCommand.Parameters.AddWithValue("@Name", property.Name);
+                            sqlCommand.Parameters.AddWithValue("@Address", property.Address);
+                            sqlCommand.Parameters.AddWithValue("@Price", property.Price);
+                            sqlCommand.Parameters.AddWithValue("@CodeInternal", property.CodeInternal);
+                            sqlCommand.Parameters.AddWithValue("@Year", property.Year);
+                            sqlCommand.Parameters.AddWithValue("@IdOwner", property.IdOwner);
+                            sqlCommand.Parameters.AddWithValue("@Name", property.Name);
+                            sqlCommand.Parameters.AddWithValue("@IdProperty", property.IdProperty);
+
+                            queryResult = sqlCommand.ExecuteNonQuery();
+
+                            sqlConnection.Close();
+                        }
+                    }
+                    if (queryResult > 0)
+                    {
+                        return new JsonResult("Property updated successfully.");
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    return new JsonResult("Database error: " + ex.Message);
+                }
+
+            }
+            return new JsonResult("Error. No changes were made.");
         }
     }
 }
