@@ -6,6 +6,10 @@ using Microsoft.Extensions.Configuration;
 using System.Data.SqlClient;
 using System.Data;
 using Newtonsoft.Json.Linq;
+using System.Text;
+using ApiRaices.Models.Validations;
+using FluentValidation.Results;
+using System;
 
 namespace ApiRaices.Controllers
 {
@@ -14,130 +18,98 @@ namespace ApiRaices.Controllers
     public class PropertyImageController : ControllerBase
     {
         private readonly  IConfiguration _configuration;
-        private readonly IWebHostEnvironment _env;
 
-        public PropertyImageController(IConfiguration configuration, IWebHostEnvironment env)
+        public PropertyImageController(IConfiguration configuration)
         {
             _configuration = configuration;
-            _env = env;
         }
 
         [HttpGet("{IdProperty}")]
-        public JsonResult Get( int IdProperty)
+        public JsonResult GetPropertyImages( int IdProperty)
         {
-            string query = @"SELECT Photo, IdPropertyImage
-                FROM dbo.PropertyImage
-                WHERE IdProperty =" + IdProperty + @" 
-                AND Enabled = 1;";
 
-
-            DataTable table = new DataTable();
+            DataTable resultDataTable = new DataTable();
             string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
-            SqlDataReader myReader;
-            using (SqlConnection myConn = new SqlConnection(sqlDataSource))
-            {
-                myConn.Open();
-                using (SqlCommand sqlCommand = new SqlCommand(query, myConn))
-                {
-                    myReader = sqlCommand.ExecuteReader();
-                    table.Load(myReader);
 
-                    myReader.Close();
-                    myConn.Close();
+            StringBuilder sqlQuery = new StringBuilder("SELECT ");
+            sqlQuery.Append("Photo, IdPropertyImage ");
+            sqlQuery.Append("FROM dbo.PropertyImage ");
+            sqlQuery.Append("WHERE IdProperty = ");
+            sqlQuery.Append(IdProperty);
+            sqlQuery.Append(" AND Enabled = 1; ");
+
+            try
+            {
+                using (SqlConnection sqlConnection = new SqlConnection(sqlDataSource))
+                using (SqlCommand sqlCommand = new SqlCommand(sqlQuery.ToString(), sqlConnection))
+                {
+                    sqlConnection.Open();
+
+                    SqlDataReader sqlDataReader = sqlCommand.ExecuteReader();
+                    resultDataTable.Load(sqlDataReader);
+
+                    sqlDataReader.Close();
+                    sqlConnection.Close();
                 }
             }
-            return new JsonResult(table);
-        }
-
-        /*
-        [HttpPost]
-        public JsonResult Post(PropertyImage propertyImage)
-        {
-            string query = @"INSERT INTO dbo.PropertyImage 
-                (IdProperty, Photo, Enabled)
-                values 
-                    (
-                    '" + propertyImage.IdProperty + @"'
-                    ,'" + propertyImage.Photo + @"'
-                    ,'" + propertyImage.Enabled + @"'
-                    )";
-
-            DataTable table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
-            SqlDataReader myReader;
-            using (SqlConnection myConn = new SqlConnection(sqlDataSource))
+            catch (SqlException sqlException)
             {
-                myConn.Open();
-                using (SqlCommand sqlCommand = new SqlCommand(query, myConn))
-                {
-                    myReader = sqlCommand.ExecuteReader();
-                    table.Load(myReader);
-
-                    myReader.Close();
-                    myConn.Close();
-                }
+                return new JsonResult("Database error: " + sqlException.Message);
             }
-            return new JsonResult("Added successfully");
+            return new JsonResult(resultDataTable);
         }
-        */
+
 
         [HttpPut]
-        public JsonResult Put(PropertyImage PropertyImage)
+        public JsonResult HideImage(PropertyImage propertyImage)
         {
-            string query = @"UPDATE dbo.PropertyImage SET 
-                Enabled = 0
-                WHERE IdPropertyImage = " + PropertyImage.IdPropertyImage + ";";
+            PropertyImageValidator validator = new PropertyImageValidator();
+            ValidationResult validationResults = validator.Validate(propertyImage);
 
-
-            DataTable table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
-            SqlDataReader myReader;
-            using (SqlConnection myConn = new SqlConnection(sqlDataSource))
+            if (!validationResults.IsValid)
             {
-                myConn.Open();
-                using (SqlCommand sqlCommand = new SqlCommand(query, myConn))
+                string errorResult = string.Empty;
+                foreach (var failure in validationResults.Errors)
                 {
-                    myReader = sqlCommand.ExecuteReader();
-                    table.Load(myReader);
+                    errorResult += "Invalid data: " + failure.ErrorMessage;
+                }
+                return new JsonResult(errorResult);
+            }
+            else
+            {
+                try
+                {
+                    StringBuilder stringQuery = new StringBuilder("BEGIN TRANSACTION; ");
+                    stringQuery.Append("UUPDATE dbo.PropertyImage SET ");
+                    stringQuery.Append("Enabled = 0 ");
+                    stringQuery.Append("WHERE IdPropertyImage = @IdPropertyImage");
+                    stringQuery.Append("COMMIT TRANSACTION;");
 
-                    myReader.Close();
-                    myConn.Close();
+                    string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
+                    int queryResult;
+                    using (SqlConnection sqlConnection = new SqlConnection(sqlDataSource))
+                    {
+                        sqlConnection.Open();
+                        using (SqlCommand sqlCommand = new SqlCommand(stringQuery.ToString(), sqlConnection))
+                        {
+                            sqlCommand.Parameters.AddWithValue("@IdPropertyImage", propertyImage.IdPropertyImage);
+
+                            queryResult = sqlCommand.ExecuteNonQuery();
+
+                            sqlConnection.Close();
+                        }
+                    }
+                    if (queryResult > 0)
+                    {
+                        return new JsonResult("Image deleted successfully.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return new JsonResult("Database error: " + ex.Message);
                 }
             }
-            return new JsonResult("Updated successfully");
+            return new JsonResult("Error. No changes were made.");
         }
-
-        /*
-        public static bool RegisterImage(PropertyImage propertyImage, IConfiguration config)
-        {
-            string query = @"INSERT INTO dbo.PropertyImage 
-                (IdProperty, Photo, Enabled)
-                values 
-                    (
-                    '" + propertyImage.IdProperty + @"'
-                    ,'" + propertyImage.Photo + @"'
-                    ,'" + propertyImage.Enabled + @"'
-                    )";
-
-            DataTable table = new DataTable();
-
-
-            string sqlDataSource = config.GetConnectionString("BienesDbCon");
-            SqlDataReader myReader;
-            using (SqlConnection myConn = new SqlConnection(sqlDataSource))
-            {
-                myConn.Open();
-                using (SqlCommand sqlCommand = new SqlCommand(query, myConn))
-                {
-                    myReader = sqlCommand.ExecuteReader();
-                    table.Load(myReader);
-
-                    myReader.Close();
-                    myConn.Close();
-                }
-            }
-            return true;
-        }
-        */
     }
 }
