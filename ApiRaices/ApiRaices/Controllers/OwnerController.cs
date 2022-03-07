@@ -1,19 +1,13 @@
-﻿using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using System.Data.SqlClient;
-using System.Data;
-using ApiRaices.Models;
-using System.IO;
+﻿using ApiRaices.Models;
 using ApiRaices.Models.Validations;
 using FluentValidation.Results;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using System;
-using System.Data.SqlTypes;
+using System.Data;
+using System.Data.SqlClient;
 using System.Text;
-using System.Net;
-using System.Xml.Linq;
-using Microsoft.Extensions.Primitives;
 
 namespace ApiRaices.Controllers
 {
@@ -22,19 +16,22 @@ namespace ApiRaices.Controllers
     public class OwnerController : ControllerBase
     {
         private readonly IConfiguration _configuration;
-        private readonly IWebHostEnvironment _env;
         private readonly string _newLine = Environment.NewLine;
 
-        public OwnerController(IConfiguration configuration, IWebHostEnvironment env)
+
+        public OwnerController(IConfiguration configuration)
         {
             _configuration = configuration;
-            _env = env;
         }
+
+        //public OwnerController()        {       }
 
         [HttpGet]
         public JsonResult Get()
         {
             DataTable resultDataTable = new DataTable();
+            JsonResult jResult;
+
             string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
 
             StringBuilder queryString = new StringBuilder("SELECT "+_newLine);
@@ -49,18 +46,24 @@ namespace ApiRaices.Controllers
                 {
                     sqlConnection.Open();
 
-                    SqlDataReader sqlDataReader = cmd.ExecuteReader();
-                    resultDataTable.Load(sqlDataReader);
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    adapter.Fill(resultDataTable);
 
-                    sqlDataReader.Close();
+                    adapter.Dispose();
                     sqlConnection.Close();
                 }
             }
             catch (SqlException ex)
             {
-                return new JsonResult("Database error: "+ex.Message);
+                jResult = new JsonResult("Database error: " + ex.Message);
+                jResult.StatusCode = 500;
+                return jResult;
             }
-            return new JsonResult(resultDataTable);
+
+            jResult = new JsonResult(resultDataTable);
+            jResult.StatusCode = 200;
+
+            return jResult;
         }
 
 
@@ -70,6 +73,8 @@ namespace ApiRaices.Controllers
             OwnerValidator validator = new OwnerValidator();
             ValidationResult validationResults = validator.Validate(owner);
 
+            JsonResult jResult;
+
             if (!validationResults.IsValid)
             {
                 string result = string.Empty;
@@ -77,7 +82,9 @@ namespace ApiRaices.Controllers
                 {
                     result += "Invalid data: " + failure.ErrorMessage + _newLine;
                 }
-                return new JsonResult(result);
+                jResult = new JsonResult(result);
+                jResult.StatusCode = 400;
+                return jResult;
             }
             else
             {
@@ -109,18 +116,23 @@ namespace ApiRaices.Controllers
                     }
                     if (result > 0)
                     {
-                        return new JsonResult("New Owner registered successfully.");
+                        jResult = new JsonResult("New Owner registered successfully.");
+                        jResult.StatusCode = 200;
+                        return jResult;
                     }
                 }
                 catch (Exception ex)
                 {
-                    return new JsonResult("Database error: " + ex.Message);
+                    jResult = new JsonResult("Database error: " + ex.Message);
+                    jResult.StatusCode = 500;
+                    return jResult;
                 }
                 
             }
-            return new JsonResult("Error. No changes were made.");
+            jResult = new JsonResult("Error. No changes were made.");
+            jResult.StatusCode = 400;
+            return jResult;
         }
-
 
 
         [HttpPut]
@@ -129,6 +141,8 @@ namespace ApiRaices.Controllers
             OwnerValidator validator = new OwnerValidator();
             ValidationResult validationResults = validator.Validate(owner);
 
+            JsonResult jResult;
+
             if (!validationResults.IsValid)
             {
                 string errorResult = string.Empty;
@@ -136,7 +150,9 @@ namespace ApiRaices.Controllers
                 {
                     errorResult += "Invalid data: " + failure.ErrorMessage + _newLine;
                 }
-                return new JsonResult(errorResult);
+                jResult = new JsonResult(errorResult);
+                jResult.StatusCode = 400;
+                return jResult;
             }
             else
             {
@@ -171,17 +187,23 @@ namespace ApiRaices.Controllers
                     }
                     if (queryResult > 0)
                     {
-                        return new JsonResult("Owner updated successfully.");
+                        jResult = new JsonResult("Owner updated successfully.");
+                        jResult.StatusCode = 200;
+                        return jResult;
                     }
 
                 }
                 catch (Exception ex)
                 {
-                    return new JsonResult("Database error: " + ex.Message);
+                    jResult = new JsonResult("Database error: " + ex.Message);
+                    jResult.StatusCode = 500;
+                    return jResult;
                 }
 
             }
-            return new JsonResult("Error. No changes were made.");
+            jResult = new JsonResult("Error. No changes were made.");
+            jResult.StatusCode = 400;
+            return jResult;
         }
 
 

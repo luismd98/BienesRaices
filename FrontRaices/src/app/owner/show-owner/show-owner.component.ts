@@ -80,18 +80,15 @@ export class ShowOwnerComponent implements OnInit {
       }
     })
   }
-
-  detailView(item:any){
-    
-  }
+  
 
   //Refresh
 
   refreshOwnerList(){
-    this.service.getOwnerList().subscribe(data => {
+    this.service.getOwnerList().subscribe((data: any=[]) => {
       this.OwnerList = data;
       this.OwnerListWithoutFilter = data;
-
+      
       //Add the value: PhotoPath to include file url
       let path = this.service.getPhotoPath();
       for(let i=0; i<this.OwnerList.length; i++){

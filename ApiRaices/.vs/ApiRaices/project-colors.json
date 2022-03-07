@@ -5,7 +5,17 @@
       "ProjectGuid": "f818ce57-9af3-422e-af18-c5aca5aa3792",
       "DisplayName": "ApiRaices",
       "ColorIndex": 0
+    },
+    "1e31d450-8497-4004-a34d-a92740df92d5": {
+      "ProjectGuid": "1e31d450-8497-4004-a34d-a92740df92d5",
+      "DisplayName": "TestAR",
+      "ColorIndex": 1
+    },
+    "bb01b69f-2ddd-42c2-a184-68261108f4af": {
+      "ProjectGuid": "bb01b69f-2ddd-42c2-a184-68261108f4af",
+      "DisplayName": "NUnitTesting",
+      "ColorIndex": 2
     }
   },
-  "NextColorIndex": 1
+  "NextColorIndex": 3
 }
