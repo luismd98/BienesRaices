@@ -45,13 +45,18 @@ Instrucciones para ejecutar el proyecto:
 4.1.	Con el proyecto abierto (no en ejecución), ira NUnitTesting > OwnerTest.cs
 4.2.	En el panel “Text Explorer”, presionar el botón de ejecutar todos
 4.3.	Pruebas disponibles: 
-•	Owner Controller (CRUD) | Se revisa el código de retorno
-o	Acción satisfactoria
-o	Error en la base de datos 
-o	Validación de información (ejemplo: Nombre en blanco, Birthday fuera de rango, etc)
+•	Owner Controller (CRUD) | Se revisa el código de retorno:
+  o	Acción satisfactoria
+  o	Error en la base de datos 
+  o	Validación de información (ejemplo: Nombre en blanco, Birthday fuera de rango, etc)
 Si el panel está oculto, usar el buscador para activarlo:
  
 ![image](https://user-images.githubusercontent.com/54687614/157125276-fee8c46e-2dda-4b3e-bc1a-647cbb87db22.png)
 
 
 
+Observaciones:
+
+Por cuestión de tiempo, no se alcanza a terminar:
+ • Documentación del código (interno)
+ • Pruebas para todos los controladores (Solo OwnerController)
