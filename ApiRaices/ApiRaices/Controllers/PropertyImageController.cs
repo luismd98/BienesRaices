@@ -34,8 +34,7 @@ namespace ApiRaices.Controllers
             StringBuilder sqlQuery = new StringBuilder("SELECT ");
             sqlQuery.Append("Photo, IdPropertyImage ");
             sqlQuery.Append("FROM dbo.PropertyImage ");
-            sqlQuery.Append("WHERE IdProperty = ");
-            sqlQuery.Append(IdProperty);
+            sqlQuery.Append("WHERE IdProperty = @IdProperty ");
             sqlQuery.Append(" AND Enabled = 1; ");
 
             try
@@ -44,6 +43,8 @@ namespace ApiRaices.Controllers
                 using (SqlCommand sqlCommand = new SqlCommand(sqlQuery.ToString(), sqlConnection))
                 {
                     sqlConnection.Open();
+
+                    sqlCommand.Parameters.AddWithValue("@IdProperty", IdProperty);
 
                     SqlDataReader sqlDataReader = sqlCommand.ExecuteReader();
                     resultDataTable.Load(sqlDataReader);

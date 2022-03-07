@@ -12,7 +12,7 @@ namespace ApiRaices.Models.Validations
                 .NotNull()
                 .NotEmpty()
                 .GreaterThan(0)
-                .Must(isNumber);
+                .Must(BeNumber);
 
             RuleFor(pImage => pImage.Photo)
                 .NotNull()
@@ -21,7 +21,7 @@ namespace ApiRaices.Models.Validations
 
         }
 
-        private bool isNumber(int value)
+        private bool BeNumber(int value)
         {
             if (Int32.TryParse(value.ToString(), out int j))
             {

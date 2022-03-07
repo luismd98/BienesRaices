@@ -6,6 +6,11 @@ using Microsoft.Extensions.Configuration;
 using System.Data.SqlClient;
 using System.Data;
 using Newtonsoft.Json.Linq;
+using System.Text;
+using ApiRaices.Models.Validations;
+using System;
+using FluentValidation;
+using FluentValidation.Results;
 
 namespace ApiRaices.Controllers
 {
@@ -14,76 +19,117 @@ namespace ApiRaices.Controllers
     public class PropertyTraceController : ControllerBase
     {
         private readonly IConfiguration _configuration;
-        private readonly IWebHostEnvironment _env;
 
-        public PropertyTraceController(IConfiguration configuration, IWebHostEnvironment env)
+        public PropertyTraceController(IConfiguration configuration)
         {
             _configuration = configuration;
-            _env = env;
         }
 
         [HttpGet("{IdProperty}")]
-        public JsonResult Get(int IdProperty)
+        public JsonResult GetPropertyTransactionTrace(int IdProperty)
         {
-            string query = @"SELECT * FROM PropertyTrace WHERE IdProperty = " + IdProperty + ";";
-            DataTable table = new DataTable();
+            DataTable resultDataTable = new DataTable();
             string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
-            SqlDataReader myReader;
-            using (SqlConnection myConn = new SqlConnection(sqlDataSource))
-            {
-                myConn.Open();
-                using (SqlCommand sqlCommand = new SqlCommand(query, myConn))
-                {
-                    myReader = sqlCommand.ExecuteReader();
-                    table.Load(myReader);
 
-                    myReader.Close();
-                    myConn.Close();
-                }
-                if (table == null || table.Rows.Count == 0)
+            StringBuilder sqlQuery = new StringBuilder("SELECT ");
+            sqlQuery.Append(" * ");
+            sqlQuery.Append("FROM PropertyTrace ");
+            sqlQuery.Append("WHERE IdProperty = @IdProperty;");
+
+            try
+            {
+                using (SqlConnection sqlConnection = new SqlConnection(sqlDataSource))
+                using (SqlCommand sqlCommand = new SqlCommand(sqlQuery.ToString(), sqlConnection))
                 {
-                    return new JsonResult("There are no transactions available for this property.");
+                    sqlConnection.Open();
+
+                    sqlCommand.Parameters.AddWithValue("@IdProperty", IdProperty);
+
+                    SqlDataReader sqlDataReader = sqlCommand.ExecuteReader();
+                    resultDataTable.Load(sqlDataReader);
+
+                    sqlDataReader.Close();
+                    sqlConnection.Close();
                 }
             }
-            return new JsonResult(table);
+            catch (SqlException sqlException)
+            {
+                return new JsonResult("Database error: " + sqlException.Message);
+            }
+            return new JsonResult(resultDataTable);
+
         }
 
 
         [HttpPost]
-        public JsonResult Post(PropertyTrace propertyTrace)
+        public JsonResult CommitNewTransaction(PropertyTrace propertyTrace)
         {
-            string query = @"BEGIN TRANSACTION;
-                    INSERT INTO dbo.PropertyTrace 
-                    (DateSale, Name, Value, Tax, IdProperty)
-                    VALUES 
-                    (
-                    '" + propertyTrace.DateSale + @"'
-                    ,'" + propertyTrace.Name + @"'
-                    ,'" + propertyTrace.Value + @"'
-                    ,'" + propertyTrace.Tax + @"'
-                    ,'" + propertyTrace.IdProperty + @"'
-                    );
-                UPDATE dbo.Property SET 
-                IdOwner = '" + propertyTrace.IdOwner + @"'
-                WHERE IdProperty = " + propertyTrace.IdProperty+ @"
-                COMMIT TRANSACTION;";
+            PropertyTraceValidator validator = new PropertyTraceValidator();
+            ValidationResult validationResults = validator.Validate(propertyTrace);
 
-            DataTable table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
-            SqlDataReader myReader;
-            using (SqlConnection myConn = new SqlConnection(sqlDataSource))
+            if (!validationResults.IsValid)
             {
-                myConn.Open();
-                using (SqlCommand sqlCommand = new SqlCommand(query, myConn))
+                string errorResult = string.Empty;
+                foreach (var failure in validationResults.Errors)
                 {
-                    myReader = sqlCommand.ExecuteReader();
-                    table.Load(myReader);
-
-                    myReader.Close();
-                    myConn.Close();
+                    errorResult += "Invalid data: " + failure.ErrorMessage;
                 }
+                return new JsonResult(errorResult);
             }
-            return new JsonResult("Sale has been successful.");
+            else
+            {
+                try
+                {
+                    StringBuilder stringQuery = new StringBuilder("BEGIN TRANSACTION; ");
+
+                    //First query (insert)
+                    stringQuery.Append("INSERT INTO dbo.PropertyTrace ");
+                    stringQuery.Append("(DateSale, Name, Value, Tax, IdProperty) ");
+                    stringQuery.Append("VALUES ");
+                    stringQuery.Append("(@DateSale, @Name, @Value, @Tax, @IdProperty) ");
+
+                    //Second update query
+                    stringQuery.Append("UPDATE dbo.Property SET ");
+                    stringQuery.Append("IdOwner = @IdOwner ");
+                    stringQuery.Append("WHERE IdProperty = @IdProperty;");
+
+                    stringQuery.Append("COMMIT TRANSACTION;");
+
+                    string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
+                    int queryResult;
+                    using (SqlConnection sqlConnection = new SqlConnection(sqlDataSource))
+                    {
+                        sqlConnection.Open();
+                        using (SqlCommand sqlCommand = new SqlCommand(stringQuery.ToString(), sqlConnection))
+                        {
+                            sqlCommand.Parameters.AddWithValue("@DateSale", propertyTrace.DateSale);
+                            sqlCommand.Parameters.AddWithValue("@Name", propertyTrace.Name);
+                            sqlCommand.Parameters.AddWithValue("@Value", propertyTrace.Value);
+                            sqlCommand.Parameters.AddWithValue("@Tax", propertyTrace.Tax);
+                            sqlCommand.Parameters.AddWithValue("@IdProperty", propertyTrace.IdProperty);
+
+                            sqlCommand.Parameters.AddWithValue("@IdOwner", propertyTrace.IdOwner);
+                            sqlCommand.Parameters.AddWithValue("@IdProperty", propertyTrace.IdProperty);
+
+
+                            queryResult = sqlCommand.ExecuteNonQuery();
+
+                            sqlConnection.Close();
+                        }
+                    }
+                    if (queryResult > 0)
+                    {
+                        return new JsonResult("Owner updated successfully.");
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    return new JsonResult("Database error: " + ex.Message);
+                }
+
+            }
+            return new JsonResult("Error. No changes were made.");
         }
 
     }
