@@ -26,7 +26,7 @@ namespace NUnitTesting
         {
             var myConfiguration = new Dictionary<string, string>{
                 {"ConnectionStrings:BienesDbCon", 
-                    "Data Source=.\\SQLExpress; Initial Catalog=brdb; Integrated Security=True"}
+                    "Data Source=.\\SQLExpress; Initial Catalog=BienesRaicesTest; Integrated Security=True"}
             };
 
             _configuration = new ConfigurationBuilder()
@@ -101,7 +101,7 @@ namespace NUnitTesting
             _owner = new Owner
             {
                 IdOwner = 1,
-                Name = "Test user #" + randomId,
+                Name = "Updated Test user #" + randomId,
                 Address = "Test address #" + randomId,
                 Photo = "Test photo #" + randomId,
                 Birthday = year + "-"+month+"-"+day
