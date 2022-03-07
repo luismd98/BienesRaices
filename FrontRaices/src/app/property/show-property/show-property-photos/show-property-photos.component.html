@@ -1,0 +1,26 @@
+<div class="row" id="gallery" >
+    
+    <div class="ml-3 bd-highlight m-4 container" *ngFor="let dataItem of PropertyImageList" style="width: 20%;">
+        <img src={{dataItem.PhotoPath}} fallback="https://via.placeholder.com/150?text=Not+Found" height="250px;" width="250px;" class="img-fluid">      
+        
+        <button  class="btn btn-primary mr-4" (click)="hidePicture($event)" 
+        value="{{dataItem.IdPropertyImage}}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eraser-fill" viewBox="0 0 16 16">
+                <path d="M8.086 2.207a2 2 0 0 1 2.828 0l3.879 3.879a2 2 0 0 1 0 2.828l-5.5 5.5A2 2 0 0 1 7.879 15H5.12a2 2 0 0 1-1.414-.586l-2.5-2.5a2 2 0 0 1 0-2.828l6.879-6.879zm.66 11.34L3.453 8.254 1.914 9.793a1 1 0 0 0 0 1.414l2.5 2.5a1 1 0 0 0 .707.293H7.88a1 1 0 0 0 .707-.293l.16-.16z"/>
+              </svg>
+        </button>
+        
+
+    </div>
+</div>
+
+<br>
+<br>
+
+<button (click)="fileSelect.click()" *ngIf="property.IdProperty != 0" class="btn btn-primary mr-4">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-square-fill" viewBox="0 0 16 16">
+        <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm6.5 4.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3a.5.5 0 0 1 1 0z"/>
+      </svg>
+      Upload picture
+      <input style="display: none" #fileSelect type="file" (change)="uploadPhoto($event)" class="mt-2" accept=".png, .jpg, .jpeg">
+</button>
