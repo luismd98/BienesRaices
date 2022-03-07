@@ -7,6 +7,10 @@ using System.Collections.Generic;
 using ApiRaices.Models;
 using System.Data.SqlClient;
 using System.Data;
+using ApiRaices.Models.Validations;
+using FluentValidation.Results;
+using FluentValidation;
+using System.Text;
 
 namespace ApiRaices.Controllers
 {
@@ -32,14 +36,28 @@ namespace ApiRaices.Controllers
                 var postedFile = httpRequest.Files[0];
                 string fileName = postedFile.FileName;
 
-                var physicalPath = _env.ContentRootPath + "/Photos/" + fileName;
+                FileValidator validator = new FileValidator();
+                ValidationResult validationResults = validator.Validate(postedFile);
 
-                using (var stream = new FileStream(physicalPath, FileMode.Create))
+                if (!validationResults.IsValid)
                 {
-                    postedFile.CopyTo(stream);
+                    string errorResult = string.Empty;
+                    foreach (var failure in validationResults.Errors)
+                    {
+                        errorResult += "Invalid data: " + failure.ErrorMessage + System.Environment.NewLine;
+                    }
+                    return new JsonResult(errorResult);
                 }
+                else
+                {
+                    var physicalPath = _env.ContentRootPath + "/Photos/" + fileName;
 
-                return new JsonResult(fileName);
+                    using (var stream = new FileStream(physicalPath, FileMode.Create))
+                    {
+                        postedFile.CopyTo(stream);
+                    }
+                    return new JsonResult(fileName);
+                }
             }
             catch (System.Exception)
             {
@@ -57,50 +75,84 @@ namespace ApiRaices.Controllers
                 var postedFile = httpRequest.Files[0];
                 string fileName = postedFile.FileName;
 
-                int ReceivedIdProperty = int.Parse(Request.Form["IdProperty"]);
+                FileValidator fileValidator = new FileValidator();
+                ValidationResult fileValidationResults = fileValidator.Validate(postedFile);
 
 
-                PropertyImage propertyImage = new PropertyImage();
-                propertyImage.IdProperty = ReceivedIdProperty;
-                propertyImage.Photo = fileName;
-                propertyImage.Enabled = true;
-
-
-                string query = @"INSERT INTO dbo.PropertyImage 
-                (IdProperty, Photo, Enabled)
-                values 
-                    (
-                    '" + propertyImage.IdProperty + @"'
-                    ,'" + propertyImage.Photo + @"'
-                    ,'" + propertyImage.Enabled + @"'
-                    )";
-
-                DataTable table = new DataTable();
-
-
-                string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
-                SqlDataReader myReader;
-                using (SqlConnection myConn = new SqlConnection(sqlDataSource))
+                if (!fileValidationResults.IsValid)
                 {
-                    myConn.Open();
-                    using (SqlCommand sqlCommand = new SqlCommand(query, myConn))
+                    string errorResult = string.Empty;
+                    foreach (var failure in fileValidationResults.Errors)
                     {
-                        myReader = sqlCommand.ExecuteReader();
-                        table.Load(myReader);
+                        errorResult += "Invalid data: " + failure.ErrorMessage;
+                    }
+                    return new JsonResult(errorResult);
+                }
+                else
+                {   
+                    int ReceivedIdProperty = int.Parse(Request.Form["IdProperty"]);
 
-                        myReader.Close();
-                        myConn.Close();
+                    PropertyImage propertyImage = new PropertyImage();
+                    propertyImage.IdProperty = ReceivedIdProperty;
+                    propertyImage.Photo = fileName;
+                    propertyImage.Enabled = true;
+
+                    PropertyImageValidator propImageValidator = new PropertyImageValidator();
+                    ValidationResult propImageValidationResults = propImageValidator.Validate(propertyImage);
+
+
+                    if (!propImageValidationResults.IsValid)
+                    {
+                        string errorResult = string.Empty;
+                        foreach (var failure in fileValidationResults.Errors)
+                        {
+                            errorResult += "Invalid data: " + failure.ErrorMessage;
+                        }
+                        return new JsonResult(errorResult);
+                    }
+                    else
+                    {
+                        StringBuilder stringQuery = new StringBuilder("BEGIN TRANSACTION; ");
+                        stringQuery.Append("INSERT INTO dbo.PropertyImage ");
+                        stringQuery.Append("(IdProperty, Photo, Enabled) ");
+                        stringQuery.Append("VALUES ");
+                        stringQuery.Append("(@IdProperty, @Photo, @Enabled) ");
+                        stringQuery.Append("COMMIT TRANSACTION;");
+
+
+                        string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
+                        int queryResult;
+
+                        using (SqlConnection sqlConnection = new SqlConnection(sqlDataSource))
+                        {
+                            sqlConnection.Open();
+                            using (SqlCommand sqlCommand = new SqlCommand(stringQuery.ToString(), sqlConnection))
+                            {
+                                sqlCommand.Parameters.AddWithValue("@IdProperty", propertyImage.IdProperty);
+                                sqlCommand.Parameters.AddWithValue("@Photo", propertyImage.Photo);
+                                sqlCommand.Parameters.AddWithValue("@Enabled", propertyImage.Enabled);
+
+                                queryResult = sqlCommand.ExecuteNonQuery();
+
+                                sqlConnection.Close();
+                            }
+                        }
+                        if (queryResult <= 0)
+                        {
+                            return new JsonResult("Picture could not be uploaded.");
+                        }
+
+                        var physicalPath = _env.ContentRootPath + "/Photos/property/" + fileName;
+
+                        using (var stream = new FileStream(physicalPath, FileMode.Create))
+                        {
+                            postedFile.CopyTo(stream);
+                        }
+
+                        return new JsonResult("Picture uploaded.");
+
                     }
                 }
-
-                var physicalPath = _env.ContentRootPath + "/Photos/property/" + fileName;
-
-                using (var stream = new FileStream(physicalPath, FileMode.Create))
-                {
-                    postedFile.CopyTo(stream);
-                }
-
-                return new JsonResult("Picture uploaded.");
             }
             catch (System.Exception ex)
             {

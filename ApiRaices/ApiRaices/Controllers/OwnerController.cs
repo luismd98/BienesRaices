@@ -81,7 +81,6 @@ namespace ApiRaices.Controllers
             }
             else
             {
-                string tmp = string.Empty;
                 try
                 {
                     StringBuilder query = new StringBuilder("BEGIN TRANSACTION; " + _newLine);
@@ -91,8 +90,6 @@ namespace ApiRaices.Controllers
                     query.Append("(@Name, @Address, @Photo, @Birthday);" );
                     query.Append("COMMIT TRANSACTION;" );
 
-                    tmp = query.ToString();
-                    DataTable table = new DataTable();
                     string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
                     int result;
                     using (SqlConnection myConn = new SqlConnection(sqlDataSource))
@@ -117,7 +114,7 @@ namespace ApiRaices.Controllers
                 }
                 catch (Exception ex)
                 {
-                    return new JsonResult("Database error: " + ex.Message + " === " + tmp);
+                    return new JsonResult("Database error: " + ex.Message);
                 }
                 
             }
@@ -134,34 +131,32 @@ namespace ApiRaices.Controllers
 
             if (!validationResults.IsValid)
             {
-                string result = string.Empty;
+                string errorResult = string.Empty;
                 foreach (var failure in validationResults.Errors)
                 {
-                    result += "Invalid data: " + failure.ErrorMessage + _newLine;
+                    errorResult += "Invalid data: " + failure.ErrorMessage + _newLine;
                 }
-                return new JsonResult(result);
+                return new JsonResult(errorResult);
             }
             else
             {
                 try
                 {
-                    StringBuilder query = new StringBuilder("BEGIN TRANSACTION; " + _newLine);
-                    query.Append("UPDATE dbo.Owner SET " + _newLine);
-                    query.Append("Name = @Name, " + _newLine);
-                    query.Append("Address = @Address, " + _newLine);
-                    query.Append("Photo = @Photo, " + _newLine);
-                    query.Append("Birthday = @Birthday " + _newLine);
-                    query.Append("WHERE IdOwner = @IdOwner; " + _newLine);
-                    query.Append("COMMIT TRANSACTION;" + _newLine);
+                    StringBuilder stringQuery = new StringBuilder("BEGIN TRANSACTION; " + _newLine);
+                    stringQuery.Append("UPDATE dbo.Owner SET " + _newLine);
+                    stringQuery.Append("Name = @Name, " + _newLine);
+                    stringQuery.Append("Address = @Address, " + _newLine);
+                    stringQuery.Append("Photo = @Photo, " + _newLine);
+                    stringQuery.Append("Birthday = @Birthday " + _newLine);
+                    stringQuery.Append("WHERE IdOwner = @IdOwner; " + _newLine);
+                    stringQuery.Append("COMMIT TRANSACTION;" + _newLine);
 
-
-                    DataTable table = new DataTable();
                     string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
-                    int result;
-                    using (SqlConnection myConn = new SqlConnection(sqlDataSource))
+                    int queryResult;
+                    using (SqlConnection sqlConnection = new SqlConnection(sqlDataSource))
                     {
-                        myConn.Open();
-                        using (SqlCommand sqlCommand = new SqlCommand(query.ToString(), myConn))
+                        sqlConnection.Open();
+                        using (SqlCommand sqlCommand = new SqlCommand(stringQuery.ToString(), sqlConnection))
                         {
                             sqlCommand.Parameters.AddWithValue("@Name", owner.Name);
                             sqlCommand.Parameters.AddWithValue("@Address", owner.Address);
@@ -169,12 +164,12 @@ namespace ApiRaices.Controllers
                             sqlCommand.Parameters.AddWithValue("@Birthday", owner.Birthday);
                             sqlCommand.Parameters.AddWithValue("@IdOwner", owner.IdOwner);
 
-                            result = sqlCommand.ExecuteNonQuery();
+                            queryResult = sqlCommand.ExecuteNonQuery();
 
-                            myConn.Close();
+                            sqlConnection.Close();
                         }
                     }
-                    if (result > 0)
+                    if (queryResult > 0)
                     {
                         return new JsonResult("Owner updated successfully.");
                     }
@@ -201,13 +196,28 @@ namespace ApiRaices.Controllers
                 var postedFile = httpRequest.Files[0];
                 string fileName = postedFile.FileName;
 
-                var physicalPath = _env.ContentRootPath + "/Photos/" + fileName;
+                FileValidator validator = new FileValidator();
+                ValidationResult validationResults = validator.Validate(postedFile);
 
-                using (var stream = new FileStream(physicalPath, FileMode.Create))
+                if (!validationResults.IsValid)
                 {
-                    postedFile.CopyTo(stream);
+                    string errorResult = string.Empty;
+                    foreach (var failure in validationResults.Errors)
+                    {
+                        errorResult += "Invalid data: " + failure.ErrorMessage + _newLine;
+                    }
+                    return new JsonResult(errorResult);
                 }
-                return new JsonResult(fileName);
+                else
+                {
+                    var physicalPath = _env.ContentRootPath + "/Photos/" + fileName;
+
+                    using (var stream = new FileStream(physicalPath, FileMode.Create))
+                    {
+                        postedFile.CopyTo(stream);
+                    }
+                    return new JsonResult(fileName);
+                }
             }
             catch (System.Exception)
             {
