@@ -22,7 +22,6 @@ export class AddEditPropertyComponent implements OnInit {
   Year:string = "";
   IdOwner: string = "";
 
-
   Photo:string = "";
   PhotoFilePath:string = "";
 
@@ -43,6 +42,9 @@ export class AddEditPropertyComponent implements OnInit {
       
       this.Photo = this.property.Photo;
       this.PhotoFilePath = this.service.PhotoUrl+this.Photo;
+    },
+    error => {
+      alert(error["error"]);
     });            
   }
 
@@ -58,6 +60,9 @@ export class AddEditPropertyComponent implements OnInit {
 
     this.service.addProperty(val).subscribe(res=>{
       alert(res.toString());
+    },
+    error => {
+      alert(error["error"]);
     });
     
   }
@@ -75,6 +80,9 @@ export class AddEditPropertyComponent implements OnInit {
                 
     this.service.updateProperty(val).subscribe(res=>{
       alert(res.toString());
+    },
+    error => {
+      alert(error["error"]);
     });
   }
 
@@ -88,6 +96,9 @@ export class AddEditPropertyComponent implements OnInit {
       this.Photo=data.toString();
       this.PhotoFilePath = this.service.PhotoUrl+this.Photo;
       
+    },
+    error => {
+      alert(error["error"]);
     });
   }
 

@@ -95,6 +95,9 @@ export class ShowOwnerComponent implements OnInit {
         this.OwnerList[i].PhotoPath = path + this.OwnerList[i].Photo;
       };
 
+    },
+    error => {
+      alert("Data could not be loaded, check the database connection")
     });
     
   }

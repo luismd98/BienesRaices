@@ -24,7 +24,7 @@ export class ShowPropertyComponent implements OnInit {
 
   //Filters / sort
   IdPropertyFilter:string ="";
-  PropertyNameFilter:string = "";
+  OwnerNameFilter:string = "";
   PropertiesListWithoutFilter: any=[];
 
 
@@ -97,16 +97,26 @@ export class ShowPropertyComponent implements OnInit {
 
   FilterList(){
     var IdPropertyFilter = this.IdPropertyFilter;
-    var PropertyNameFilter = this.PropertyNameFilter;
+    var OwnerNameFilter = this.OwnerNameFilter;
 
-    this.PropertiesList = this.PropertiesListWithoutFilter.filter(function(data:any){
-      return data.IdProperty.toString().toLowerCase().includes(
-        IdPropertyFilter.toString().trim().toLowerCase()
-      )&&
-      data.Name.toString().toLowerCase().includes(
-        PropertyNameFilter.toString().trim().toLowerCase()
-      )
-    }); 
+    if(this.IdPropertyFilter){
+      this.PropertiesList = this.PropertiesListWithoutFilter.filter(function(data:any){      
+        return data.IdProperty.toString().toLowerCase().includes(
+          IdPropertyFilter.toString().trim().toLowerCase()
+        )&&
+        data.OwnerName.toString().toLowerCase().includes(
+          OwnerNameFilter.toString().trim().toLowerCase()
+        )
+      }); 
+    }else{
+      this.PropertiesList = this.PropertiesListWithoutFilter.filter(function(data:any){      
+        return data.OwnerName.toString().toLowerCase().includes(
+          OwnerNameFilter.toString().trim().toLowerCase()
+        )
+      }); 
+    }
+
+    
   }
 
   sortResult(data: any, isAscending: boolean){
@@ -125,8 +135,12 @@ export class ShowPropertyComponent implements OnInit {
     this.service.getPropertyList().subscribe(data => {
       this.PropertiesList = data;
       this.PropertiesListWithoutFilter = data;
-    })
+    },
+    error => {
+      alert(error["error"]);
+    });
   }
 
 
 }
+

@@ -41,6 +41,9 @@ export class ShowPropertyPhotosComponent implements OnInit {
       this.PhotoFilePath = this.service.PhotoUrl+this.Photo;
       this.refreshPropertyImagesList();
       alert(data.toString());
+    },
+    error => {
+      alert(error["error"]);
     });
   }
   
@@ -51,6 +54,9 @@ export class ShowPropertyPhotosComponent implements OnInit {
       this.service.hidePicture(this.PropertyImage).subscribe(data=>{
         alert(data.toString());
         this.refreshPropertyImagesList();
+      },
+      error => {
+        alert(error["error"]);
       });
     }
   }
@@ -66,6 +72,9 @@ export class ShowPropertyPhotosComponent implements OnInit {
         this.PropertyImageList[i].PhotoPath = path + this.PropertyImageList[i].Photo;
         console.log(this.PropertyImageList[i]);
       };
+    },
+    error => {
+      alert(error["error"]);
     });
 
     this.PropertyImageList.forEach((element: any) => console.log(element));

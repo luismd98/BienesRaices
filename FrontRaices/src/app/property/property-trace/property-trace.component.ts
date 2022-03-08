@@ -73,6 +73,9 @@ export class PropertyTraceComponent implements OnInit {
     this.service.getPropertyTrace(IdProperty).subscribe(data => {
       this.PropertiesTraceList = data;
       this.PropertiesListWithoutFilter = data;
+    },
+    error => {
+      alert(error["error"]);
     });
 
 

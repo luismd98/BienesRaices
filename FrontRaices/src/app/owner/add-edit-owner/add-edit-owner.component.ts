@@ -39,8 +39,12 @@ export class AddEditOwnerComponent implements OnInit {
                 Birthday: this.Birthday,
                 Photo: this.Photo };
 
-    this.service.addOwner(val).subscribe(res=>{
+    this.service.addOwner(val)
+    .subscribe(res=>{ 
       alert(res.toString());
+    },
+    error => {
+      alert(error["error"]);
     });
     
   }
@@ -53,9 +57,13 @@ export class AddEditOwnerComponent implements OnInit {
                 Birthday: this.Birthday,
                 Photo: this.Photo };
                 
-    this.service.updateOwner(val).subscribe(res=>{
-      alert(res.toString());
-    });
+    this.service.updateOwner(val)
+    .subscribe(success =>{
+      alert(success.toString());
+      },
+      error => {
+        alert(error["error"]);
+      });
   }
 
   
@@ -69,6 +77,9 @@ export class AddEditOwnerComponent implements OnInit {
       this.Photo=data.toString();
       this.PhotoFilePath = this.service.PhotoUrl+this.Photo;
       
+    },
+    error => {
+      alert(error["error"]);
     });
   }
 

@@ -4,7 +4,7 @@
         
         <label class="col-sm-4 col-form-label mt-2">Property name</label>
         <div class="col-sm-8">
-            <input type="text" class="form-control  mt-2" [(ngModel)]="Name">
+            <input type="text" required class="form-control  mt-2" [(ngModel)]="Name" >
         </div>
 
         <label class="col-sm-4 col-form-label  mt-2">Address</label>
@@ -16,7 +16,7 @@
         <label class="col-sm-4 col-form-label  mt-2">CodeInternal</label>
         <div class="col-sm-8">
             <input type="number" class="form-control  mt-2" [(ngModel)]="CodeInternal"
-            readonly>
+            readonly >
         </div>
 
         <label class="col-sm-4 col-form-label mt-2">Year</label>
@@ -35,13 +35,13 @@
         <label class="col-sm-4 col-form-label mt-2">Price</label>
         <div class="col-sm-8">
             <input type="number" class="form-control mt-2" [(ngModel)]="Price"
-            placeholder="Enter Price">
+            placeholder="Enter Price"  required>
         </div>    
 
         <label class="col-sm-4 col-form-label mt-2">Tax (%)</label>
         <div class="col-sm-8">
             <input type="number" value="19" class="form-control mt-2" [(ngModel)]="Tax"
-            placeholder="Enter tax %">
+            placeholder="Enter tax %" >
         </div>   
 
         <label class="col-sm-4 col-form-label mt-2">Select new owner</label>

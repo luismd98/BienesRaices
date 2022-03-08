@@ -4,6 +4,7 @@ using FluentValidation.Results;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Data;
 using System.Data.SqlClient;
@@ -17,7 +18,6 @@ namespace ApiRaices.Controllers
     {
         private readonly IConfiguration _configuration;
         private readonly string _newLine = Environment.NewLine;
-
 
         public OwnerController(IConfiguration configuration)
         {
@@ -34,8 +34,8 @@ namespace ApiRaices.Controllers
 
             string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
 
-            StringBuilder queryString = new StringBuilder("SELECT "+_newLine);
-            queryString.Append("IdOwner, Name, Address, Photo, "+ _newLine);
+            StringBuilder queryString = new StringBuilder("SELECT " + _newLine);
+            queryString.Append("IdOwner, Name, Address, Photo, " + _newLine);
             queryString.Append("convert(varchar(10),Birthday,120) as Birthday " + _newLine);
             queryString.Append("FROM dbo.Owner");
 
@@ -62,7 +62,6 @@ namespace ApiRaices.Controllers
 
             jResult = new JsonResult(resultDataTable);
             jResult.StatusCode = 200;
-
             return jResult;
         }
 
@@ -93,9 +92,9 @@ namespace ApiRaices.Controllers
                     StringBuilder query = new StringBuilder("BEGIN TRANSACTION; " + _newLine);
                     query.Append("INSERT INTO dbo.Owner ");
                     query.Append("(Name, Address, Photo, Birthday) ");
-                    query.Append("VALUES " );
-                    query.Append("(@Name, @Address, @Photo, @Birthday);" );
-                    query.Append("COMMIT TRANSACTION;" );
+                    query.Append("VALUES ");
+                    query.Append("(@Name, @Address, @Photo, @Birthday);");
+                    query.Append("COMMIT TRANSACTION;");
 
                     string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
                     int result;
@@ -127,7 +126,7 @@ namespace ApiRaices.Controllers
                     jResult.StatusCode = 500;
                     return jResult;
                 }
-                
+
             }
             jResult = new JsonResult("Error. No changes were made.");
             jResult.StatusCode = 400;
@@ -203,6 +202,47 @@ namespace ApiRaices.Controllers
             }
             jResult = new JsonResult("Error. No changes were made.");
             jResult.StatusCode = 400;
+            return jResult;
+        }
+
+        [HttpGet("{id}")]
+        public JsonResult GetById(int id)
+        {
+            DataTable resultDataTable = new DataTable();
+            JsonResult jResult;
+
+            string sqlDataSource = _configuration.GetConnectionString("BienesDbCon");
+
+            StringBuilder queryString = new StringBuilder("Select *  ");
+            queryString.Append("from property ");
+            queryString.Append("WHERE property.IdOwner = @IdOwner");
+
+
+            try
+            {
+                using (SqlConnection sqlConnection = new SqlConnection(sqlDataSource))
+                using (SqlCommand cmd = new SqlCommand(queryString.ToString(), sqlConnection))
+                {
+                    sqlConnection.Open();
+
+                    cmd.Parameters.AddWithValue("@IdOwner", id);
+
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    adapter.Fill(resultDataTable);
+
+                    adapter.Dispose();
+                    sqlConnection.Close();
+                }
+            }
+            catch (SqlException ex)
+            {
+                jResult = new JsonResult("Database error: " + ex.Message);
+                jResult.StatusCode = 500;
+                return jResult;
+            }
+
+            jResult = new JsonResult(resultDataTable);
+            jResult.StatusCode = 200;
             return jResult;
         }
 

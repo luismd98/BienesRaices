@@ -45,7 +45,10 @@ export class SellPropertyComponent implements OnInit {
       this.IdOwner = this.property.IdOwner;
       this.DateSale = formatDate(new Date(), 'yyyy-MM-dd', 'en');
       this.Tax = 19; //default value
-    });            
+    },
+    error => {
+      alert(error["error"]);
+    });           
   }
 
   confirmSale(){
@@ -60,6 +63,9 @@ export class SellPropertyComponent implements OnInit {
 
     this.service.confirmSale(val).subscribe(res=>{
       alert(res.toString());
+    },
+    error => {
+      alert(error["error"]);
     });
   }
 

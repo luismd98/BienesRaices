@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 
 //imported libraries 
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 @Injectable({
@@ -14,7 +14,6 @@ export class SharedService {
 
   //instanciate / initiate  HttpClient object 
   constructor(private http:HttpClient) { }
-
 
   //Calling API methods | Owner
 
